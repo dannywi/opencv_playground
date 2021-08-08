@@ -1,0 +1,5 @@
+set_target_name()
+message(STATUS "Setting up [${TARGET_NAME}]")
+project(${TARGET_NAME} CXX)
+add_executable(${TARGET_NAME} main.cpp)
+setup_target(${TARGET_NAME})

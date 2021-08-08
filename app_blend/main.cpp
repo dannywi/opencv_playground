@@ -60,14 +60,14 @@ int main(int argc, char* argv[]) {
   }
 
   {
-    util::timer t("mask - manual blending");
+    util::timer t("blend - manual blending");
     cv::Mat result = blend(image1, image2, alpha);
     t.print_passed_sec();
     show(result);
   }
 
   {
-    util::timer t("mask - using addWeighted");
+    util::timer t("blend - using addWeighted");
     cv::Mat result;
     cv::addWeighted(image1, alpha, image2, 1 - alpha, 0.0, result);
     t.print_passed_sec();

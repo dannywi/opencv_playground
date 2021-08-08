@@ -23,9 +23,18 @@ uchar* lookup_table(uchar div) {
 
 void play(int argc, char* argv[]) {
   cv::Mat A, C;
-  A = cv::imread(argv[1], cv::IMREAD_COLOR);
-  C = A;
 
+  if (argc > 1) {
+    A = cv::imread(argv[1], cv::IMREAD_COLOR);
+  } else {
+    cout << "DEBUG ... using sample" << endl;
+    A = cv::imread(cv::samples::findFile("messi5.jpg"));
+  }
+
+  cv::imshow("IMAGE", A);
+  cv::waitKey();
+
+  C = A;
   cv::Mat D(A, cv::Rect(10, 10, 100, 100));
   cv::Mat D2 = A(cv::Range::all(), cv::Range(1, 3));
 
