@@ -2,44 +2,57 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include <type_traits>
 
 #include "lib/util.hpp"
 #include "opencv2/opencv.hpp"
 
 using namespace std;
 
+template <typename T>
+void assert_type() {
+  static_assert(sizeof(T) < sizeof(size_t), "Type T must be smaller than size_t.");
+  static_assert(is_integral<T>::value, "Type T must be integral.");
+}
+
+template <typename T>
+constexpr size_t N() {
+  return numeric_limits<T>::max() + 1;
+}
+
 namespace lookup_table {
 
-// TODO: T must be integer smaller than size_t. Do static assertion.
-
-template <typename T, size_t N = numeric_limits<T>::max() + 1>
+template <typename T, size_t N = N<T>()>
 array<T, N> alpha_beta(double alpha, double beta) {
+  assert_type<T>();
+
   array<T, N> ret;
-  for (size_t i = 0; i < N; ++i)
-    ret[i] = cv::saturate_cast<T>(alpha * i + beta);
+  for (size_t i = 0; i < N; ++i) ret[i] = cv::saturate_cast<T>(alpha * i + beta);
   return ret;
 }
 
-template <typename T, size_t N = numeric_limits<T>::max() + 1>
+template <typename T, size_t N = N<T>()>
 array<T, N> gamma(double gamma) {
+  assert_type<T>();
+
   array<T, N> ret;
   double max_val = static_cast<double>(N - 1);
-  for (size_t i = 0; i < N; ++i)
-    ret[i] = cv::saturate_cast<T>(pow(i / max_val, gamma) * max_val);
+  for (size_t i = 0; i < N; ++i) ret[i] = cv::saturate_cast<T>(pow(i / max_val, gamma) * max_val);
   return ret;
 }
 
 }  // namespace lookup_table
 
-template <typename T, size_t N = numeric_limits<T>::max() + 1>
+template <typename T, size_t N = N<T>()>
 cv::Mat transform_image(const cv::Mat& image, const array<T, N>& lookup_table) {
+  assert_type<T>();
+
   cv::Mat result = cv::Mat::zeros(image.size(), image.type());
 
   for (size_t y = 0; y < image.rows; ++y) {
     for (size_t x = 0; x < image.cols; ++x) {
       for (size_t c = 0; c < image.channels(); ++c) {
-        result.at<cv::Vec3b>(y, x)[c] =
-            lookup_table[image.at<cv::Vec3b>(y, x)[c]];
+        result.at<cv::Vec3b>(y, x)[c] = lookup_table[image.at<cv::Vec3b>(y, x)[c]];
       }
     }
   }
@@ -54,13 +67,12 @@ void show(const cv::Mat& result, const string& title) {
 }
 
 int main(int argc, char* argv[]) {
-  cv::CommandLineParser parser(
-      argc, argv,
-      "{help h        |     | print this message    }"
-      "{@image        |     | image to process      }"
-      "{alpha a       |  1.0| 0.0 to 3.0            }"
-      "{beta b        |  0.0| -100.0 to 100.0       }"
-      "{gamma g       |  1.0| -100.0 to 100.0       }");
+  cv::CommandLineParser parser(argc, argv,
+                               "{help h        |     | print this message    }"
+                               "{@image        |     | image to process      }"
+                               "{alpha a       |  1.0| 0.0 to 3.0            }"
+                               "{beta b        |  0.0| -100.0 to 100.0       }"
+                               "{gamma g       |  1.0| -100.0 to 100.0       }");
 
   if (parser.has("help")) {
     parser.printMessage();
@@ -74,8 +86,7 @@ int main(int argc, char* argv[]) {
     double beta = parser.get<double>("beta");
 
     util::timer t("brightness and constrast - alpha + beta");
-    cv::Mat result = transform_image<uchar>(
-        image, lookup_table::alpha_beta<uchar>(alpha, beta));
+    cv::Mat result = transform_image<uchar>(image, lookup_table::alpha_beta<uchar>(alpha, beta));
     t.print_passed_sec();
     stringstream title;
     title << "alpha [" << alpha << "] beta [" << beta << "]" << endl;
@@ -86,8 +97,7 @@ int main(int argc, char* argv[]) {
     double gamma = parser.get<double>("gamma");
 
     util::timer t("brightness and constrast - gamma");
-    cv::Mat result =
-        transform_image<uchar>(image, lookup_table::gamma<uchar>(gamma));
+    cv::Mat result = transform_image<uchar>(image, lookup_table::gamma<uchar>(gamma));
     t.print_passed_sec();
     stringstream title;
     title << "gamma [" << gamma << "]" << endl;
